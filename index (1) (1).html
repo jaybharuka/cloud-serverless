@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project 2 - Cloud Is Free</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="formToApi.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="new-badge">NEW</div>
+        <h1 class="form-title">Cloud Messaging Service</h1>
+        
+        <div class="feature-item">
+            <div class="check-icon">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M5 12L10 17L19 8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <div class="feature-text">Send messages instantly to email and SMS</div>
+        </div>
+        
+        <form>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="message">Message</label>
+                    <input type="text" id="message" name="message" placeholder="Type your message here...">
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input id="email" name="email" placeholder="recipient@example.com">
+                </div>
+                <div class="form-group">
+                    <button onClick="formToApi(event,'email')">Send an Email</button>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="sms">SMS</label>
+                    <input id="sms" name="sms" placeholder="+1234567890">
+                </div>
+                <div class="form-group">
+                    <button onClick="formToApi(event,'sms')">Send a SMS</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</body>
+</html>
