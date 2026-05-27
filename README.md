@@ -4,7 +4,6 @@
 
 [![AWS SAM](https://img.shields.io/badge/AWS%20SAM-Deployed-orange?logo=amazon-aws&logoColor=white)](https://aws.amazon.com/serverless/sam/)
 [![Python](https://img.shields.io/badge/Python-3.12-blue?logo=python&logoColor=white)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 ---
 
@@ -223,8 +222,3 @@ cloud-serverless/
 
 **Estimated total cost: < $1 / month**
 
----
-
-## License
-
-[MIT](LICENSE)
