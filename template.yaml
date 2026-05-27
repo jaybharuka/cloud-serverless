@@ -1,0 +1,150 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  cloud-serverless — Serverless Email & SMS Sending Application
+  Triggered from a static S3 website via API Gateway → Lambda → Step Functions → SES/SNS
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Timeout: 10
+    Architectures:
+      - x86_64
+    Environment:
+      Variables:
+        LOG_LEVEL: INFO
+
+Parameters:
+  SourceEmail:
+    Type: String
+    Description: >
+      A verified Amazon SES email address used as the From: address.
+      Must be verified in SES before sending emails.
+
+  EmailSubject:
+    Type: String
+    Default: "Cloud Messaging Service"
+    Description: Subject line for outbound emails
+
+Resources:
+
+  # ────────────────────────────────────────────────────────────────
+  # API Gateway
+  # ────────────────────────────────────────────────────────────────
+  MessagingApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
+      Cors:
+        AllowMethods: "'POST,OPTIONS'"
+        AllowHeaders: "'Content-Type'"
+        AllowOrigin: "'*'"
+
+  # ────────────────────────────────────────────────────────────────
+  # Lambda Functions
+  # ────────────────────────────────────────────────────────────────
+  RestApiHandlerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/rest_api_handler/
+      Handler: app.lambda_handler
+      Description: Validates the HTTP request and starts the Step Functions workflow
+      Environment:
+        Variables:
+          STATE_MACHINE_ARN: !Ref SendingStateMachine
+      Policies:
+        - StepFunctionsExecutionPolicy:
+            StateMachineName: !GetAtt SendingStateMachine.Name
+      Events:
+        PostSend:
+          Type: Api
+          Properties:
+            Path: /send
+            Method: post
+            RestApiId: !Ref MessagingApi
+        OptionsSend:
+          Type: Api
+          Properties:
+            Path: /send
+            Method: options
+            RestApiId: !Ref MessagingApi
+
+  EmailSenderFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/email_sender/
+      Handler: app.lambda_handler
+      Description: Sends email via Amazon SES
+      Environment:
+        Variables:
+          SOURCE_EMAIL: !Ref SourceEmail
+          EMAIL_SUBJECT: !Ref EmailSubject
+      Policies:
+        - SESCrudPolicy:
+            IdentityName: !Ref SourceEmail
+
+  SmsSenderFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/sms_sender/
+      Handler: app.lambda_handler
+      Description: Sends SMS via Amazon SNS
+      Policies:
+        - SNSPublishMessagePolicy:
+            TopicName: "*"
+
+  # ────────────────────────────────────────────────────────────────
+  # Step Functions State Machine
+  # ────────────────────────────────────────────────────────────────
+  SendingStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      DefinitionUri: statemachine/sending.asl.json
+      DefinitionSubstitutions:
+        EmailSenderFunctionArn: !GetAtt EmailSenderFunction.Arn
+        SmsSenderFunctionArn: !GetAtt SmsSenderFunction.Arn
+      Policies:
+        - LambdaInvokePolicy:
+            FunctionName: !Ref EmailSenderFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref SmsSenderFunction
+
+  # ────────────────────────────────────────────────────────────────
+  # S3 Frontend Bucket
+  # ────────────────────────────────────────────────────────────────
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: index.html
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: "*"
+            Action: s3:GetObject
+            Resource: !Sub "${FrontendBucket.Arn}/*"
+
+Outputs:
+  ApiEndpoint:
+    Description: "API Gateway endpoint — paste into frontend/app.js"
+    Value: !Sub "https://${MessagingApi}.execute-api.${AWS::Region}.amazonaws.com/prod/send"
+
+  FrontendBucketName:
+    Description: "S3 bucket to upload the frontend files into"
+    Value: !Ref FrontendBucket
+
+  FrontendWebsiteUrl:
+    Description: "Public S3 website URL"
+    Value: !GetAtt FrontendBucket.WebsiteURL

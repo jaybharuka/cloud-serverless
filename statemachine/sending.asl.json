@@ -1,0 +1,37 @@
+{
+    "Comment": "Routes incoming messages to the Email or SMS Lambda function",
+    "StartAt": "Select Type of Sending",
+    "States": {
+        "Select Type of Sending": {
+            "Type": "Choice",
+            "Choices": [
+                {
+                    "Variable": "$.typeOfSending",
+                    "StringEquals": "email",
+                    "Next": "Send Email"
+                },
+                {
+                    "Variable": "$.typeOfSending",
+                    "StringEquals": "sms",
+                    "Next": "Send SMS"
+                }
+            ],
+            "Default": "Invalid Type"
+        },
+        "Send Email": {
+            "Type": "Task",
+            "Resource": "${EmailSenderFunctionArn}",
+            "End": true
+        },
+        "Send SMS": {
+            "Type": "Task",
+            "Resource": "${SmsSenderFunctionArn}",
+            "End": true
+        },
+        "Invalid Type": {
+            "Type": "Fail",
+            "Error": "InvalidTypeOfSending",
+            "Cause": "typeOfSending must be 'email' or 'sms'"
+        }
+    }
+}
